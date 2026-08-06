@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>내부 품질 기한</title>
+
+<style>
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto;
+  background: #f4f6f8;
+}
+
+/* 헤더 */
+header {
+  background: #006241;
+  color: white;
+  padding: 18px;
+  font-size: 18px;
+  font-weight: bold;
+}
+
+/* 탭 */
+.tabs {
+  display: flex;
+  background: white;
+}
+
+.tab {
+  flex: 1;
+  text-align: center;
+  padding: 14px;
+  font-weight: bold;
+  color: #777;
+  border-bottom: 2px solid #eee;
+}
+
+.tab.active {
+  color: #006241;
+  border-bottom: 3px solid #006241;
+}
+
+/* 검색 */
+.search-box {
+  padding: 12px;
+  background: white;
+}
+
+.search-box input {
+  width: 100%;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+}
+
+/* 카드 */
+.container {
+  padding: 12px;
+}
+
+.card {
+  background: white;
+  border-radius: 14px;
+  padding: 16px;
+  margin-bottom: 12px;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.05);
+}
+
+.name {
+  font-size: 16px;
+  font-weight: bold;
+  margin-bottom: 10px;
+}
+
+.section {
+  font-size: 14px;
+  margin-bottom: 6px;
+}
+
+.label {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  margin-top: 6px;
+}
+
+.storage {
+  background: #e0f2f1;
+  color: #00695c;
+}
+
+.warning {
+  background: #fdecea;
+  color: #c62828;
+}
+
+.hidden {
+  display: none;
+}
+</style>
+</head>
+
+<body>
+
+<header>내부 품질 기한</header>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('core')">코어</div>
+  <div class="tab" onclick="switchTab('promo')">프로모션</div>
+</div>
+
+<div class="search-box">
+  <input type="text" placeholder="재료 검색..." onkeyup="searchItem(this.value)">
+</div>
+
+<div class="container">
+
+  <!-- 코어 -->
+  <div id="core">
+
+    <div class="card" data-name="휘핑크림">
+      <div class="name">휘핑크림</div>
+      <div class="section">개봉 후: 24시간</div>
+      <div class="label storage">냉장 보관</div>
+    </div>
+
+    <div class="card" data-name="우유">
+      <div class="name">우유</div>
+      <div class="section">개봉 후: 48시간</div>
+      <div class="label storage">냉장 보관</div>
+    </div>
+
+  </div>
+
+  <!-- 프로모션 -->
+  <div id="promo" class="hidden">
+
+    <div class="card" data-name="피치망고 요거트 토핑">
+      <div class="name">피치망고 요거트 토핑</div>
+      <div class="section">원팩: 3개월</div>
+      <div class="section">개봉 후: 당일 폐기</div>
+      <div class="label storage">실온 보관</div>
+      <div class="label warning">재사용 금지</div>
+    </div>
+
+  </div>
+
+</div>
+
+<script>
+function switchTab(type) {
+  document.getElementById('core').classList.add('hidden');
+  document.getElementById('promo').classList.add('hidden');
+
+  document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+
+  if (type === 'core') {
+    document.getElementById('core').classList.remove('hidden');
+    document.querySelectorAll('.tab')[0].classList.add('active');
+  } else {
+    document.getElementById('promo').classList.remove('hidden');
+    document.querySelectorAll('.tab')[1].classList.add('active');
+  }
+}
+
+function searchItem(keyword) {
+  keyword = keyword.toLowerCase();
+
+  document.querySelectorAll('.card').forEach(card => {
+    let name = card.getAttribute('data-name').toLowerCase();
+
+    if (name.includes(keyword)) {
+      card.style.display = 'block';
+    } else {
+      card.style.display = 'none';
+    }
+  });
+}
+</script>
+
+</body>
+</html>
