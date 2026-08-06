@@ -73,15 +73,32 @@ header {background:#006241;color:white;padding:16px;text-align:center;font-weigh
   background:white;
   padding:20px;
   border-radius:12px;
-  width:30%;
+  width:90%;
+  max-width:420px;
+  max-height:85vh;
+  overflow-y:auto;
+  box-sizing:border-box;
+}
+
+@media (min-width:600px) {
+  .modal-content {
+    width:60%;
+  }
+}
+
+@media (min-width:900px) {
+  .modal-content {
+    width:30%;
+  }
 }
 
 input, select {
-  width:60%;
+  width:100%;
   padding:10px;
   margin:6px 0;
   border-radius:8px;
   border:1px solid #ddd;
+  box-sizing:border-box;
 }
 </style>
 </head>
