@@ -3,181 +3,160 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>내부 품질 기한</title>
+<title>내부 품질 기한 관리</title>
 
 <style>
 body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto;
-  background: #f4f6f8;
+  margin:0;
+  font-family:sans-serif;
+  background:#f7f7f7;
 }
 
-/* 헤더 */
 header {
-  background: #006241;
-  color: white;
-  padding: 18px;
-  font-size: 18px;
-  font-weight: bold;
+  background:#006241;
+  color:white;
+  padding:16px;
+  text-align:center;
+  font-weight:bold;
 }
 
-/* 탭 */
-.tabs {
-  display: flex;
-  background: white;
-}
-
-.tab {
-  flex: 1;
-  text-align: center;
-  padding: 14px;
-  font-weight: bold;
-  color: #777;
-  border-bottom: 2px solid #eee;
-}
-
-.tab.active {
-  color: #006241;
-  border-bottom: 3px solid #006241;
-}
-
-/* 검색 */
-.search-box {
-  padding: 12px;
-  background: white;
-}
-
-.search-box input {
-  width: 100%;
-  padding: 10px;
-  border-radius: 8px;
-  border: 1px solid #ddd;
-}
-
-/* 카드 */
 .container {
-  padding: 12px;
+  padding:16px;
 }
 
 .card {
-  background: white;
-  border-radius: 14px;
-  padding: 16px;
-  margin-bottom: 12px;
-  box-shadow: 0 3px 8px rgba(0,0,0,0.05);
+  background:white;
+  border-radius:12px;
+  padding:14px;
+  margin-bottom:12px;
+  box-shadow:0 2px 6px rgba(0,0,0,0.08);
 }
 
 .name {
-  font-size: 16px;
-  font-weight: bold;
-  margin-bottom: 10px;
+  font-weight:bold;
+  margin-bottom:6px;
 }
 
-.section {
-  font-size: 14px;
-  margin-bottom: 6px;
+button {
+  width:100%;
+  padding:14px;
+  border:none;
+  border-radius:12px;
+  background:#006241;
+  color:white;
+  font-size:16px;
+  margin-top:12px;
 }
 
-.label {
-  display: inline-block;
-  padding: 4px 8px;
-  border-radius: 6px;
-  font-size: 12px;
-  margin-top: 6px;
+/* 모달 */
+.modal {
+  display:none;
+  position:fixed;
+  left:0; top:0;
+  width:100%; height:100%;
+  background:rgba(0,0,0,0.4);
+  justify-content:center;
+  align-items:center;
 }
 
-.storage {
-  background: #e0f2f1;
-  color: #00695c;
+.modal-content {
+  background:white;
+  padding:20px;
+  border-radius:12px;
+  width:90%;
 }
 
-.warning {
-  background: #fdecea;
-  color: #c62828;
-}
-
-.hidden {
-  display: none;
+input {
+  width:100%;
+  padding:10px;
+  margin:6px 0;
+  border-radius:8px;
+  border:1px solid #ddd;
 }
 </style>
 </head>
 
 <body>
 
-<header>내부 품질 기한</header>
+<header>내부 품질 기한 관리</header>
 
-<div class="tabs">
-  <div class="tab active" onclick="switchTab('core')">코어</div>
-  <div class="tab" onclick="switchTab('promo')">프로모션</div>
-</div>
-
-<div class="search-box">
-  <input type="text" placeholder="재료 검색..." onkeyup="searchItem(this.value)">
-</div>
+<div class="container" id="list"></div>
 
 <div class="container">
+  <button onclick="openModal()">+ 원부재료 추가하기</button>
+</div>
 
-  <!-- 코어 -->
-  <div id="core">
-
-    <div class="card" data-name="휘핑크림">
-      <div class="name">휘핑크림</div>
-      <div class="section">개봉 후: 24시간</div>
-      <div class="label storage">냉장 보관</div>
-    </div>
-
-    <div class="card" data-name="우유">
-      <div class="name">우유</div>
-      <div class="section">개봉 후: 48시간</div>
-      <div class="label storage">냉장 보관</div>
-    </div>
-
+<!-- 입력창 -->
+<div class="modal" id="modal">
+  <div class="modal-content">
+    <h3>원부재료 추가</h3>
+    <input id="name" placeholder="원부재료 이름">
+    <input id="storage" placeholder="보관 방법">
+    <input id="pack" placeholder="원팩 기한">
+    <input id="after" placeholder="소분 후 기한">
+    <button onclick="addItem()">저장</button>
   </div>
-
-  <!-- 프로모션 -->
-  <div id="promo" class="hidden">
-
-    <div class="card" data-name="피치망고 요거트 토핑">
-      <div class="name">피치망고 요거트 토핑</div>
-      <div class="section">원팩: 3개월</div>
-      <div class="section">개봉 후: 당일 폐기</div>
-      <div class="label storage">실온 보관</div>
-      <div class="label warning">재사용 금지</div>
-    </div>
-
-  </div>
-
 </div>
 
 <script>
-function switchTab(type) {
-  document.getElementById('core').classList.add('hidden');
-  document.getElementById('promo').classList.add('hidden');
 
-  document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+const listEl = document.getElementById('list');
 
-  if (type === 'core') {
-    document.getElementById('core').classList.remove('hidden');
-    document.querySelectorAll('.tab')[0].classList.add('active');
-  } else {
-    document.getElementById('promo').classList.remove('hidden');
-    document.querySelectorAll('.tab')[1].classList.add('active');
-  }
-}
+/* 불러오기 */
+function load() {
+  const data = JSON.parse(localStorage.getItem('items') || '[]');
+  listEl.innerHTML = '';
 
-function searchItem(keyword) {
-  keyword = keyword.toLowerCase();
-
-  document.querySelectorAll('.card').forEach(card => {
-    let name = card.getAttribute('data-name').toLowerCase();
-
-    if (name.includes(keyword)) {
-      card.style.display = 'block';
-    } else {
-      card.style.display = 'none';
-    }
+  data.forEach(item => {
+    const div = document.createElement('div');
+    div.className = 'card';
+    div.innerHTML = `
+      <div class="name">${item.name}</div>
+      <div>보관: ${item.storage}</div>
+      <div>원팩: ${item.pack}</div>
+      <div>소분 후: ${item.after}</div>
+    `;
+    listEl.appendChild(div);
   });
 }
+
+/* 모달 열기 */
+function openModal() {
+  document.getElementById('modal').style.display = 'flex';
+}
+
+/* 추가 */
+function addItem() {
+  const item = {
+    name: document.getElementById('name').value,
+    storage: document.getElementById('storage').value,
+    pack: document.getElementById('pack').value,
+    after: document.getElementById('after').value
+  };
+
+  if (!item.name) {
+    alert("이름은 필수야!");
+    return;
+  }
+
+  const data = JSON.parse(localStorage.getItem('items') || '[]');
+  data.push(item);
+  localStorage.setItem('items', JSON.stringify(data));
+
+  document.getElementById('modal').style.display = 'none';
+
+  // 입력값 초기화
+  document.getElementById('name').value = '';
+  document.getElementById('storage').value = '';
+  document.getElementById('pack').value = '';
+  document.getElementById('after').value = '';
+
+  load();
+}
+
+/* 최초 실행 */
+load();
+
 </script>
 
 </body>
