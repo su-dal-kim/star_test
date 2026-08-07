@@ -1,6 +1,9 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
+<link rel="manifest" href="/manifest.json" />
+<meta name="theme-color" content="#000000" />
+<link rel="apple-touch-icon" href="/icon-192.png" />
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>내부 품질 기한</title>
@@ -541,6 +544,18 @@ window.onclick = function(event) {
 // 초기 렌더링
 render();
 </script>
-
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('/service-worker.js')
+      .then(function (registration) {
+        console.log('ServiceWorker 등록 성공:', registration.scope);
+      })
+      .catch(function (error) {
+        console.log('ServiceWorker 등록 실패:', error);
+      });
+  });
+}
+</script>
 </body>
 </html>
