@@ -7,7 +7,7 @@
 
 <style>
 * {
-  box-sizing: border-box; /* 💡 핵심 */
+  box-sizing: border-box;
 }
 
 body {
@@ -18,7 +18,6 @@ body {
   justify-content:center;
 }
 
-/* 전체 폭 제한 (웹 대응) */
 .app {
   width:100%;
   max-width:480px;
@@ -34,7 +33,6 @@ header {
   font-weight:bold;
 }
 
-/* 탭 */
 .tabs {
   display:flex;
   background:white;
@@ -45,6 +43,7 @@ header {
   padding:10px;
   font-size:13px;
   color:#777;
+  cursor: pointer;
 }
 .tab.active {
   color:#006241;
@@ -52,7 +51,6 @@ header {
   border-bottom:2px solid #006241;
 }
 
-/* 검색 */
 .search {
   padding:10px;
   background:white;
@@ -64,7 +62,6 @@ header {
   border:1px solid #ddd;
 }
 
-/* 리스트 */
 .container {
   padding:10px;
 }
@@ -80,6 +77,13 @@ header {
 .name {
   font-weight:bold;
   margin-bottom:6px;
+  font-size: 16px;
+}
+
+.info-row {
+  font-size: 14px;
+  color: #555;
+  margin-bottom: 2px;
 }
 
 .btns {
@@ -94,38 +98,12 @@ header {
   border:none;
   border-radius:6px;
   font-size:12px;
+  cursor: pointer;
 }
 
 .edit {background:#e3f2fd;}
 .delete {background:#fdecea;}
 
-.modal-btns {
-  display: flex;
-  gap: 8px;
-  margin-top: 12px;
-}
-
-.modal-btns .btn {
-  flex: 1;
-  padding: 10px;
-  border: none;
-  border-radius: 6px;
-  font-size: 14px;
-  cursor: pointer;
-  font-weight: bold;
-}
-
-.save {
-  background: #006241;
-  color: white;
-}
-
-.cancel {
-  background: #eee;
-  color: #333;
-}
-
-/* 추가 버튼 */
 .add-btn {
   position:fixed;
   bottom:20px;
@@ -138,9 +116,10 @@ header {
   width:56px;
   height:56px;
   font-size:24px;
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.2);
 }
 
-/* 모바일에서는 오른쪽 */
 @media (max-width:480px){
   .add-btn {
     right:16px;
@@ -148,7 +127,6 @@ header {
   }
 }
 
-/* 모달 */
 .modal {
   display:none;
   position:fixed;
@@ -162,18 +140,64 @@ header {
 
 .modal-content {
   background:white;
-  padding:16px;
+  padding:20px;
   border-radius:12px;
   width:90%;
   max-width:380px;
 }
 
+.modal-content h3 {
+  margin-top: 0;
+  margin-bottom: 15px;
+}
+
+.input-group {
+  margin-bottom: 10px;
+}
+
+.input-group label {
+  display: block;
+  font-size: 12px;
+  color: #777;
+  margin-bottom: 4px;
+}
+
 input, select {
   width:100%;
-  padding:8px;
-  margin:6px 0;
+  padding:10px;
   border-radius:6px;
   border:1px solid #ddd;
+  font-size: 14px;
+}
+
+.modal-btns {
+  display: flex;
+  gap: 8px;
+  margin-top: 20px;
+}
+
+.modal-btns .btn {
+  flex: 1;
+  padding: 12px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+.save {
+  background: #006241;
+  color: white;
+}
+
+.cancel {
+  background: #eee;
+  color: #333;
+}
+
+/* 분류에 따른 필드 숨김 처리 */
+.hidden {
+  display: none;
 }
 </style>
 </head>
@@ -181,20 +205,18 @@ input, select {
 <body>
 
 <div class="app">
+  <header>내부 품질 기한</header>
 
-<header>내부 품질 기한</header>
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('core', this)">원부재료</div>
+    <div class="tab" onclick="switchTab('promo', this)">부재료</div>
+  </div>
 
-<div class="tabs">
-  <div class="tab active" onclick="switchTab('core', this)">코어</div>
-  <div class="tab" onclick="switchTab('promo', this)">프로모션</div>
-</div>
+  <div class="search">
+    <input type="text" id="searchInput" placeholder="검색" onkeyup="searchItem(this.value)">
+  </div>
 
-<div class="search">
-  <input type="text" placeholder="검색" onkeyup="searchItem(this.value)">
-</div>
-
-<div class="container" id="list"></div>
-
+  <div class="container" id="list"></div>
 </div>
 
 <button class="add-btn" onclick="openModal()">+</button>
@@ -202,17 +224,40 @@ input, select {
 <!-- 모달 -->
 <div class="modal" id="modal">
   <div class="modal-content">
-    <h3>원부재료</h3>
+    <h3 id="modalTitle">항목 추가</h3>
 
-    <select id="type">
-      <option value="core">코어</option>
-      <option value="promo">프로모션</option>
-    </select>
+    <div class="input-group">
+      <label>분류</label>
+      <select id="type" onchange="toggleFields()">
+        <option value="core">원부재료</option>
+        <option value="promo">부재료</option>
+      </select>
+    </div>
 
-    <input id="name" placeholder="이름">
-    <input id="storage" placeholder="보관 방법">
-    <input id="pack" placeholder="원팩 기한">
-    <input id="after" placeholder="소분 후 기한">
+    <div class="input-group">
+      <label>이름</label>
+      <input id="name" placeholder="이름을 입력하세요">
+    </div>
+
+    <!-- 원부재료 전용 필드 -->
+    <div id="coreFields">
+      <div class="input-group">
+        <label>원팩 기한</label>
+        <input id="pack" placeholder="원팩 기한">
+      </div>
+      <div class="input-group">
+        <label>소분 후 기한</label>
+        <input id="after" placeholder="소분 후 기한">
+      </div>
+    </div>
+
+    <!-- 부재료 전용 필드 (내품기) -->
+    <div id="promoFields" class="hidden">
+      <div class="input-group">
+        <label>내부 품질 기한 (내품기)</label>
+        <input id="quality_limit" placeholder="내품기를 입력하세요">
+      </div>
+    </div>
 
     <div class="modal-btns">
       <button class="btn cancel" onclick="closeModal()">취소</button>
@@ -233,107 +278,116 @@ function setData(data){
   localStorage.setItem('items', JSON.stringify(data));
 }
 
+/* 분류에 따라 입력 필드 토글 */
+function toggleFields() {
+  const type = document.getElementById('type').value;
+  const coreFields = document.getElementById('coreFields');
+  const promoFields = document.getElementById('promoFields');
+  
+  if (type === 'core') {
+    coreFields.classList.remove('hidden');
+    promoFields.classList.add('hidden');
+  } else {
+    coreFields.classList.add('hidden');
+    promoFields.classList.remove('hidden');
+  }
+}
+
 /* 렌더 */
-function render(){
+function render(filterText = ''){
   const data = getData();
   const list = document.getElementById('list');
   list.innerHTML = '';
 
-  data
-    .filter(item => item.type === currentTab)
-    .forEach(item => {
+  const filtered = data.filter(item => {
+    const matchesTab = item.type === currentTab;
+    const matchesSearch = item.name.toLowerCase().includes(filterText.toLowerCase());
+    return matchesTab && matchesSearch;
+  });
 
-      const div = document.createElement('div');
-      div.className = 'card';
-
-      div.innerHTML = `
-        <div class="name">${item.name}</div>
-        <div>보관: ${item.storage}</div>
-        <div>원팩: ${item.pack}</div>
-        <div>소분 후: ${item.after}</div>
-
-        <div class="btns">
-          <button class="btn edit" onclick="editItem('${item.id}')">수정</button>
-          <button class="btn delete" onclick="deleteItem('${item.id}')">삭제</button>
-        </div>
-      `;
-
-      list.appendChild(div);
-    });
-}
-
-/* 탭 */
-function switchTab(tab, el){
-  currentTab = tab;
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  el.classList.add('active');
-  render();
-}
-
-/* 검색 */
-function searchItem(text){
-  const data = getData();
-
-  const filtered = data.filter(item =>
-    item.type === currentTab &&
-    item.name.toLowerCase().includes(text.toLowerCase())
-  );
-
-  const list = document.getElementById('list');
-  list.innerHTML = '';
+  if (filtered.length === 0) {
+    list.innerHTML = '<div style="text-align:center; color:#999; margin-top:20px;">데이터가 없습니다.</div>';
+    return;
+  }
 
   filtered.forEach(item => {
     const div = document.createElement('div');
     div.className = 'card';
 
-    div.innerHTML = `
-      <div class="name">${item.name}</div>
-      <div>보관: ${item.storage}</div>
-      <div>원팩: ${item.pack}</div>
-      <div>소분 후: ${item.after}</div>
+    let contentHtml = `<div class="name">${item.name}</div>`;
+    
+    if (item.type === 'core') {
+      contentHtml += `
+        <div class="info-row">원팩: ${item.pack || '-'}</div>
+        <div class="info-row">소분 후: ${item.after || '-'}</div>
+      `;
+    } else {
+      contentHtml += `
+        <div class="info-row">내품기: ${item.quality_limit || '-'}</div>
+      `;
+    }
 
+    contentHtml += `
       <div class="btns">
         <button class="btn edit" onclick="editItem('${item.id}')">수정</button>
         <button class="btn delete" onclick="deleteItem('${item.id}')">삭제</button>
       </div>
     `;
 
+    div.innerHTML = contentHtml;
     list.appendChild(div);
   });
 }
 
-/* 모달 */
+/* 탭 전환 */
+function switchTab(tab, el){
+  currentTab = tab;
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('searchInput').value = '';
+  render();
+}
+
+/* 검색 */
+function searchItem(text){
+  render(text);
+}
+
+/* 모달 열기 */
 function openModal(){
   editId = null;
+  document.getElementById('modalTitle').innerText = '항목 추가';
   document.getElementById('type').value = currentTab;
+  
+  // 필드 초기화
   document.getElementById('name').value = '';
-  document.getElementById('storage').value = '';
   document.getElementById('pack').value = '';
   document.getElementById('after').value = '';
+  document.getElementById('quality_limit').value = '';
+  
+  toggleFields();
   document.getElementById('modal').style.display='flex';
 }
 
 /* 저장 */
 function saveItem(){
-  console.log('저장 버튼 클릭됨');
-  
   let data = getData();
+  const type = document.getElementById('type').value;
+  const name = document.getElementById('name').value;
+
+  if(!name){
+    alert("이름을 입력해주세요!");
+    return;
+  }
 
   const item = {
     id: editId || Date.now().toString(),
-    type: document.getElementById('type').value,
-    name: document.getElementById('name').value,
-    storage: document.getElementById('storage').value,
+    type: type,
+    name: name,
     pack: document.getElementById('pack').value,
-    after: document.getElementById('after').value
+    after: document.getElementById('after').value,
+    quality_limit: document.getElementById('quality_limit').value
   };
-
-  console.log('저장 데이터:', item);
-
-  if(!item.name){
-    alert("이름 필수!");
-    return;
-  }
 
   if(editId){
     data = data.map(d => d.id === editId ? item : d);
@@ -341,7 +395,6 @@ function saveItem(){
     data.push(item);
   }
 
-  console.log('최종 데이터:', data);
   setData(data);
   closeModal();
   render();
@@ -351,21 +404,23 @@ function saveItem(){
 function editItem(id){
   const data = getData();
   const item = data.find(d => d.id === id);
-
-  document.getElementById('type').value = item.type;
-  document.getElementById('name').value = item.name;
-  document.getElementById('storage').value = item.storage;
-  document.getElementById('pack').value = item.pack;
-  document.getElementById('after').value = item.after;
+  if(!item) return;
 
   editId = id;
+  document.getElementById('modalTitle').innerText = '항목 수정';
+  document.getElementById('type').value = item.type;
+  document.getElementById('name').value = item.name;
+  document.getElementById('pack').value = item.pack || '';
+  document.getElementById('after').value = item.after || '';
+  document.getElementById('quality_limit').value = item.quality_limit || '';
+
+  toggleFields();
   document.getElementById('modal').style.display='flex';
 }
 
 /* 삭제 */
 function deleteItem(id){
-  if(!confirm("삭제할까?")) return;
-
+  if(!confirm("정말 삭제하시겠습니까?")) return;
   const data = getData().filter(d => d.id !== id);
   setData(data);
   render();
@@ -374,23 +429,17 @@ function deleteItem(id){
 /* 닫기 */
 function closeModal(){
   document.getElementById('modal').style.display='none';
-
-  document.getElementById('name').value='';
-  document.getElementById('storage').value='';
-  document.getElementById('pack').value='';
-  document.getElementById('after').value='';
 }
 
 /* 모달 배경 클릭 시 닫기 */
-document.addEventListener('DOMContentLoaded', function(){
+window.onclick = function(event) {
   const modal = document.getElementById('modal');
-  modal.addEventListener('click', function(e){
-    if(e.target === modal){
-      closeModal();
-    }
-  });
-});
+  if (event.target == modal) {
+    closeModal();
+  }
+}
 
+// 초기 렌더링
 render();
 </script>
 
