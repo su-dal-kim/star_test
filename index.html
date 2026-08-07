@@ -7,23 +7,44 @@
 
 <style>
 body {margin:0;font-family:sans-serif;background:#f4f6f8;}
-header {background:#006241;color:white;padding:16px;text-align:center;font-weight:bold;}
+header {background:#006241;color:white;padding:14px;text-align:center;font-weight:bold;}
 
-.tabs {display:flex;background:white;}
-.tab {flex:1;text-align:center;padding:12px;font-weight:bold;color:#777;border-bottom:2px solid #eee;}
-.tab.active {color:#006241;border-bottom:3px solid #006241;}
+/* 탭 */
+.tabs {
+  display:flex;
+  background:white;
+  border-bottom:1px solid #ddd;
+}
+.tab {
+  flex:1;
+  text-align:center;
+  padding:10px;
+  font-size:14px;
+  color:#777;
+}
+.tab.active {
+  color:#006241;
+  font-weight:bold;
+  border-bottom:2px solid #006241;
+}
 
-.search {padding:12px;background:white;}
-.search input {width:100%;padding:10px;border-radius:8px;border:1px solid #ddd;}
+/* 검색 */
+.search {padding:10px;background:white;}
+.search input {
+  width:100%;
+  padding:8px;
+  border-radius:8px;
+  border:1px solid #ddd;
+}
 
-.container {padding:12px;}
-
+/* 카드 */
+.container {padding:10px;}
 .card {
   background:white;
-  border-radius:12px;
-  padding:14px;
-  margin-bottom:10px;
-  box-shadow:0 2px 6px rgba(0,0,0,0.08);
+  border-radius:10px;
+  padding:12px;
+  margin-bottom:8px;
+  box-shadow:0 1px 4px rgba(0,0,0,0.08);
 }
 
 .name {font-weight:bold;margin-bottom:6px;}
@@ -36,29 +57,31 @@ header {background:#006241;color:white;padding:16px;text-align:center;font-weigh
 
 .btn {
   flex:1;
-  padding:8px;
+  padding:6px;
   border:none;
-  border-radius:8px;
-  font-size:13px;
-  background:#e3f2fd;
+  border-radius:6px;
+  font-size:12px;
 }
 
 .edit {background:#e3f2fd;}
 .delete {background:#fdecea;}
 
+/* 추가 버튼 */
 .add-btn {
   position:fixed;
-  bottom:20px;
-  right:20px;
+  bottom:16px;
+  right:16px;
   background:#006241;
   color:white;
   border:none;
   border-radius:50%;
-  width:60px;
-  height:60px;
-  font-size:26px;
+  width:56px;
+  height:56px;
+  font-size:24px;
+  box-shadow:0 4px 10px rgba(0,0,0,0.2);
 }
 
+/* 모달 */
 .modal {
   display:none;
   position:fixed;
@@ -69,18 +92,28 @@ header {background:#006241;color:white;padding:16px;text-align:center;font-weigh
   align-items:center;
 }
 
+/* 💡 핵심: 반응형 */
 .modal-content {
   background:white;
-  padding:20px;
+  padding:16px;
   border-radius:12px;
-  width:30%;
+  width:90%;
+  max-width:400px;
+  max-height:80vh;
+  overflow-y:auto;
+}
+
+@media (max-width:600px){
+  .modal-content {
+    max-height:90vh;
+  }
 }
 
 input, select {
-  width:60%;
-  padding:10px;
-  margin:6px 0;
-  border-radius:8px;
+  width:100%;
+  padding:8px;
+  margin:5px 0;
+  border-radius:6px;
   border:1px solid #ddd;
 }
 </style>
@@ -91,8 +124,8 @@ input, select {
 <header>내부 품질 기한</header>
 
 <div class="tabs">
-  <div class="tab active" onclick="switchTab('core')">코어</div>
-  <div class="tab" onclick="switchTab('promo')">프로모션</div>
+  <div class="tab active" onclick="switchTab('core', this)">코어</div>
+  <div class="tab" onclick="switchTab('promo', this)">프로모션</div>
 </div>
 
 <div class="search">
@@ -118,28 +151,32 @@ input, select {
     <input id="pack" placeholder="원팩 기한">
     <input id="after" placeholder="소분 후 기한">
 
-    <button class="btn" onclick="saveItem()">저장</button>
+    <button onclick="saveItem()">저장</button>
   </div>
 </div>
 
 <script>
 let currentTab = 'core';
-let editIndex = null;
+let editId = null;
 
-/* 로드 */
-function load() {
-  const data = JSON.parse(localStorage.getItem('items') || '[]');
-  render(data);
+/* 데이터 불러오기 */
+function getData(){
+  return JSON.parse(localStorage.getItem('items') || '[]');
+}
+
+/* 저장 */
+function setData(data){
+  localStorage.setItem('items', JSON.stringify(data));
 }
 
 /* 렌더 */
-function render(data) {
+function render(data){
   const list = document.getElementById('list');
   list.innerHTML = '';
 
   data
     .filter(item => item.type === currentTab)
-    .forEach((item, index) => {
+    .forEach(item => {
 
       const div = document.createElement('div');
       div.className = 'card';
@@ -151,8 +188,8 @@ function render(data) {
         <div>소분 후: ${item.after}</div>
 
         <div class="btns">
-          <button class="btn edit" onclick="editItem(${index})">수정</button>
-          <button class="btn delete" onclick="deleteItem(${index})">삭제</button>
+          <button class="btn edit" onclick="editItem('${item.id}')">수정</button>
+          <button class="btn delete" onclick="deleteItem('${item.id}')">삭제</button>
         </div>
       `;
 
@@ -161,18 +198,16 @@ function render(data) {
 }
 
 /* 탭 */
-function switchTab(tab) {
+function switchTab(tab, el){
   currentTab = tab;
-
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  event.target.classList.add('active');
-
+  el.classList.add('active');
   load();
 }
 
 /* 검색 */
-function searchItem(text) {
-  const data = JSON.parse(localStorage.getItem('items') || '[]');
+function searchItem(text){
+  const data = getData();
 
   const filtered = data.filter(item =>
     item.type === currentTab &&
@@ -182,17 +217,18 @@ function searchItem(text) {
   render(filtered);
 }
 
-/* 추가 모달 */
-function openModal() {
-  editIndex = null;
-  document.getElementById('modal').style.display = 'flex';
+/* 모달 열기 */
+function openModal(){
+  editId = null;
+  document.getElementById('modal').style.display='flex';
 }
 
 /* 저장 */
-function saveItem() {
-  const data = JSON.parse(localStorage.getItem('items') || '[]');
+function saveItem(){
+  let data = getData();
 
   const item = {
+    id: editId || Date.now().toString(),
     type: document.getElementById('type').value,
     name: document.getElementById('name').value,
     storage: document.getElementById('storage').value,
@@ -200,26 +236,26 @@ function saveItem() {
     after: document.getElementById('after').value
   };
 
-  if (!item.name) {
-    alert("이름은 필수입니다!");
+  if(!item.name){
+    alert("이름 필수!");
     return;
   }
 
-  if (editIndex !== null) {
-    data[editIndex] = item;
-  } else {
+  if(editId){
+    data = data.map(d => d.id === editId ? item : d);
+  }else{
     data.push(item);
   }
 
-  localStorage.setItem('items', JSON.stringify(data));
+  setData(data);
   closeModal();
   load();
 }
 
 /* 수정 */
-function editItem(index) {
-  const data = JSON.parse(localStorage.getItem('items') || '[]');
-  const item = data[index];
+function editItem(id){
+  const data = getData();
+  const item = data.find(d => d.id === id);
 
   document.getElementById('type').value = item.type;
   document.getElementById('name').value = item.name;
@@ -227,28 +263,32 @@ function editItem(index) {
   document.getElementById('pack').value = item.pack;
   document.getElementById('after').value = item.after;
 
-  editIndex = index;
-  document.getElementById('modal').style.display = 'flex';
+  editId = id;
+  document.getElementById('modal').style.display='flex';
 }
 
 /* 삭제 */
-function deleteItem(index) {
-  if (!confirm("삭제할까요?")) return;
+function deleteItem(id){
+  if(!confirm("삭제할까?")) return;
 
-  const data = JSON.parse(localStorage.getItem('items') || '[]');
-  data.splice(index, 1);
-  localStorage.setItem('items', JSON.stringify(data));
+  const data = getData().filter(d => d.id !== id);
+  setData(data);
   load();
 }
 
 /* 닫기 */
-function closeModal() {
-  document.getElementById('modal').style.display = 'none';
+function closeModal(){
+  document.getElementById('modal').style.display='none';
 
-  document.getElementById('name').value = '';
-  document.getElementById('storage').value = '';
-  document.getElementById('pack').value = '';
-  document.getElementById('after').value = '';
+  document.getElementById('name').value='';
+  document.getElementById('storage').value='';
+  document.getElementById('pack').value='';
+  document.getElementById('after').value='';
+}
+
+/* 초기 */
+function load(){
+  render(getData());
 }
 
 load();
