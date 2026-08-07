@@ -6,20 +6,44 @@
 <title>내부 품질 기한</title>
 
 <style>
-body {margin:0;font-family:sans-serif;background:#f4f6f8;}
-header {background:#006241;color:white;padding:14px;text-align:center;font-weight:bold;}
+* {
+  box-sizing: border-box; /* 💡 핵심 */
+}
+
+body {
+  margin:0;
+  font-family:sans-serif;
+  background:#f4f6f8;
+  display:flex;
+  justify-content:center;
+}
+
+/* 전체 폭 제한 (웹 대응) */
+.app {
+  width:100%;
+  max-width:480px;
+  background:#f4f6f8;
+  min-height:100vh;
+}
+
+header {
+  background:#006241;
+  color:white;
+  padding:14px;
+  text-align:center;
+  font-weight:bold;
+}
 
 /* 탭 */
 .tabs {
   display:flex;
   background:white;
-  border-bottom:1px solid #ddd;
 }
 .tab {
   flex:1;
   text-align:center;
   padding:10px;
-  font-size:14px;
+  font-size:13px;
   color:#777;
 }
 .tab.active {
@@ -29,7 +53,10 @@ header {background:#006241;color:white;padding:14px;text-align:center;font-weigh
 }
 
 /* 검색 */
-.search {padding:10px;background:white;}
+.search {
+  padding:10px;
+  background:white;
+}
 .search input {
   width:100%;
   padding:8px;
@@ -37,8 +64,11 @@ header {background:#006241;color:white;padding:14px;text-align:center;font-weigh
   border:1px solid #ddd;
 }
 
-/* 카드 */
-.container {padding:10px;}
+/* 리스트 */
+.container {
+  padding:10px;
+}
+
 .card {
   background:white;
   border-radius:10px;
@@ -47,7 +77,10 @@ header {background:#006241;color:white;padding:14px;text-align:center;font-weigh
   box-shadow:0 1px 4px rgba(0,0,0,0.08);
 }
 
-.name {font-weight:bold;margin-bottom:6px;}
+.name {
+  font-weight:bold;
+  margin-bottom:6px;
+}
 
 .btns {
   display:flex;
@@ -69,8 +102,9 @@ header {background:#006241;color:white;padding:14px;text-align:center;font-weigh
 /* 추가 버튼 */
 .add-btn {
   position:fixed;
-  bottom:16px;
-  right:16px;
+  bottom:20px;
+  right:calc(50% - 200px);
+  transform:translateX(50%);
   background:#006241;
   color:white;
   border:none;
@@ -78,7 +112,14 @@ header {background:#006241;color:white;padding:14px;text-align:center;font-weigh
   width:56px;
   height:56px;
   font-size:24px;
-  box-shadow:0 4px 10px rgba(0,0,0,0.2);
+}
+
+/* 모바일에서는 오른쪽 */
+@media (max-width:480px){
+  .add-btn {
+    right:16px;
+    transform:none;
+  }
 }
 
 /* 모달 */
@@ -92,27 +133,18 @@ header {background:#006241;color:white;padding:14px;text-align:center;font-weigh
   align-items:center;
 }
 
-/* 💡 핵심: 반응형 */
 .modal-content {
   background:white;
   padding:16px;
   border-radius:12px;
   width:90%;
-  max-width:400px;
-  max-height:80vh;
-  overflow-y:auto;
-}
-
-@media (max-width:600px){
-  .modal-content {
-    max-height:90vh;
-  }
+  max-width:380px;
 }
 
 input, select {
   width:100%;
   padding:8px;
-  margin:5px 0;
+  margin:6px 0;
   border-radius:6px;
   border:1px solid #ddd;
 }
@@ -120,6 +152,8 @@ input, select {
 </head>
 
 <body>
+
+<div class="app">
 
 <header>내부 품질 기한</header>
 
@@ -129,10 +163,12 @@ input, select {
 </div>
 
 <div class="search">
-  <input type="text" placeholder="검색 (예: 휘핑)" onkeyup="searchItem(this.value)">
+  <input type="text" placeholder="검색" onkeyup="searchItem(this.value)">
 </div>
 
 <div class="container" id="list"></div>
+
+</div>
 
 <button class="add-btn" onclick="openModal()">+</button>
 
@@ -159,18 +195,17 @@ input, select {
 let currentTab = 'core';
 let editId = null;
 
-/* 데이터 불러오기 */
 function getData(){
   return JSON.parse(localStorage.getItem('items') || '[]');
 }
 
-/* 저장 */
 function setData(data){
   localStorage.setItem('items', JSON.stringify(data));
 }
 
 /* 렌더 */
-function render(data){
+function render(){
+  const data = getData();
   const list = document.getElementById('list');
   list.innerHTML = '';
 
@@ -202,7 +237,7 @@ function switchTab(tab, el){
   currentTab = tab;
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   el.classList.add('active');
-  load();
+  render();
 }
 
 /* 검색 */
@@ -214,10 +249,30 @@ function searchItem(text){
     item.name.toLowerCase().includes(text.toLowerCase())
   );
 
-  render(filtered);
+  const list = document.getElementById('list');
+  list.innerHTML = '';
+
+  filtered.forEach(item => {
+    const div = document.createElement('div');
+    div.className = 'card';
+
+    div.innerHTML = `
+      <div class="name">${item.name}</div>
+      <div>보관: ${item.storage}</div>
+      <div>원팩: ${item.pack}</div>
+      <div>소분 후: ${item.after}</div>
+
+      <div class="btns">
+        <button class="btn edit" onclick="editItem('${item.id}')">수정</button>
+        <button class="btn delete" onclick="deleteItem('${item.id}')">삭제</button>
+      </div>
+    `;
+
+    list.appendChild(div);
+  });
 }
 
-/* 모달 열기 */
+/* 모달 */
 function openModal(){
   editId = null;
   document.getElementById('modal').style.display='flex';
@@ -249,7 +304,7 @@ function saveItem(){
 
   setData(data);
   closeModal();
-  load();
+  render();
 }
 
 /* 수정 */
@@ -273,7 +328,7 @@ function deleteItem(id){
 
   const data = getData().filter(d => d.id !== id);
   setData(data);
-  load();
+  render();
 }
 
 /* 닫기 */
@@ -286,12 +341,7 @@ function closeModal(){
   document.getElementById('after').value='';
 }
 
-/* 초기 */
-function load(){
-  render(getData());
-}
-
-load();
+render();
 </script>
 
 </body>
