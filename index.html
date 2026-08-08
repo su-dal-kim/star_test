@@ -357,10 +357,10 @@ textarea {
       <div class="tab active" onclick="switchTab('core', this)">코어</div>
       <div class="tab" onclick="switchTab('promo', this)">프로모션</div>
     </div>
-  </div>
 
-  <div class="search">
-    <input type="text" id="searchInput" placeholder="품목 검색" onkeyup="searchItem(this.value)">
+    <div class="search">
+      <input type="text" id="searchInput" placeholder="품목 검색" onkeyup="searchItem(this.value)">
+    </div>
   </div>
 
   <div class="container" id="list">
@@ -580,6 +580,7 @@ function switchTab(tab, el){
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   el.classList.add('active');
   document.getElementById('searchInput').value = '';
+  window.scrollTo({ top: 0, behavior: 'auto' });
   render();
 }
 
