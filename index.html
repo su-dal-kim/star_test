@@ -5,6 +5,20 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no, maximum-scale=1.0">
 <title>내부 품질 기한</title>
 
+<!-- PWA manifest -->
+<link rel="manifest" href="/manifest.json">
+
+<!-- 아이콘 (일반 브라우저 탭/즐겨찾기) -->
+<link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="/icon-512.png">
+
+<!-- iOS 홈화면 추가 시 아이콘 (Safari는 manifest.json을 따르지 않음) -->
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="내부 품질 기한">
+<meta name="theme-color" content="#006241">
+
 <style>
 * {
   box-sizing: border-box;
