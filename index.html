@@ -32,7 +32,21 @@ header {
   padding:14px;
   text-align:center;
   font-weight:bold;
+  position: relative;
 }
+
+.status-dot {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #ffb300;
+}
+.status-dot.online { background: #4caf50; }
+.status-dot.offline { background: #d32f2f; }
 
 .tabs {
   display:flex;
@@ -139,6 +153,7 @@ header {
 
 .edit {background:#e3f2fd; color: #1976d2;}
 .delete {background:#fdecea; color: #d32f2f;}
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .add-btn {
   position:fixed;
@@ -238,7 +253,6 @@ select {
   background-size: 18px;
 }
 
-/* iOS Safari 자동 확대 방지 */
 input[type="text"],
 input[type="search"],
 input[type="email"],
@@ -250,7 +264,6 @@ textarea {
   font-size: 16px !important;
 }
 
-/* 모바일 디바이스 스크롤 부드라늘 남기기 */
 @supports (padding: max(0px)) {
   input, select, textarea {
     padding: max(12px, 1rem);
@@ -292,15 +305,35 @@ textarea {
   margin-top:40px;
   font-size: 14px;
 }
+
+.toast {
+  position: fixed;
+  bottom: 90px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #333;
+  color: white;
+  padding: 10px 18px;
+  border-radius: 20px;
+  font-size: 13px;
+  z-index: 2000;
+  opacity: 0;
+  transition: opacity 0.3s;
+  pointer-events: none;
+  white-space: nowrap;
+}
+.toast.show { opacity: 1; }
 </style>
 </head>
 
 <body>
 
 <div class="app">
-  <header>내부 품질 기한</header>
+  <header>
+    내부 품질 기한
+    <span class="status-dot" id="statusDot" title="연결 상태"></span>
+  </header>
 
-  <!-- 메인 탭: 코어 / 프로모션 -->
   <div class="tabs">
     <div class="tab active" onclick="switchTab('core', this)">코어</div>
     <div class="tab" onclick="switchTab('promo', this)">프로모션</div>
@@ -311,13 +344,12 @@ textarea {
   </div>
 
   <div class="container" id="list">
-    <!-- 리스트가 여기에 렌더링됨 -->
+    <div class="empty-msg">불러오는 중...</div>
   </div>
 </div>
 
 <button class="add-btn" onclick="openModal()">+</button>
 
-<!-- 모달 -->
 <div class="modal" id="modal">
   <div class="modal-content">
     <h3 id="modalTitle">항목 추가</h3>
@@ -343,7 +375,6 @@ textarea {
       <input id="name" placeholder="이름을 입력하세요">
     </div>
 
-    <!-- 원부재료 전용 필드 -->
     <div id="mainFields">
       <div class="input-group">
         <label>원팩 기한</label>
@@ -355,7 +386,6 @@ textarea {
       </div>
     </div>
 
-    <!-- 부재료 전용 필드 -->
     <div id="subFields" class="hidden">
       <div class="input-group">
         <label>보관 방법</label>
@@ -369,21 +399,67 @@ textarea {
 
     <div class="modal-btns">
       <button class="btn cancel" onclick="closeModal()">취소</button>
-      <button class="btn save" onclick="saveItem()">저장</button>
+      <button class="btn save" id="saveBtn" onclick="saveItem()">저장</button>
     </div>
   </div>
 </div>
 
-<script>
-let currentTab = 'core'; // 코어 or 프로모션
-let editId = null;
+<div class="toast" id="toast"></div>
 
-function getData(){
-  return JSON.parse(localStorage.getItem('items_v2') || '[]');
+<!-- Supabase JS 클라이언트 -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+/* ============================================================
+   1) 아래 두 값을 본인의 Supabase 프로젝트 값으로 교체하세요.
+      Supabase 대시보드 > Project Settings > API 에서 확인 가능
+   ============================================================ */
+const SUPABASE_URL = 'https://qjaygidswkasosyhjluj.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFqYXlnaWRzd2thc29zeWhqbHVqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYxMjQ2MjQsImV4cCI6MjEwMTcwMDYyNH0.Nn3x7GPExxxSxHTGlcIIPpdb3DO75ZUeqGDeL0eC6_g';
+
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const TABLE = 'items';
+
+let currentTab = 'core';
+let editId = null;
+let cachedData = [];
+let isConfigured = SUPABASE_URL.indexOf('YOUR_PROJECT_REF') === -1;
+
+function setStatus(state) {
+  const dot = document.getElementById('statusDot');
+  dot.className = 'status-dot ' + state;
 }
 
-function setData(data){
-  localStorage.setItem('items_v2', JSON.stringify(data));
+function showToast(msg) {
+  const toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 2000);
+}
+
+/* 데이터 전체 불러오기 */
+async function fetchData() {
+  if (!isConfigured) {
+    setStatus('offline');
+    document.getElementById('list').innerHTML =
+      '<div class="empty-msg">Supabase 설정이 필요합니다.<br>코드 상단 SUPABASE_URL / SUPABASE_ANON_KEY를 입력하세요.</div>';
+    return;
+  }
+
+  const { data, error } = await supabaseClient
+    .from(TABLE)
+    .select('*')
+    .order('created_at', { ascending: true });
+
+  if (error) {
+    console.error(error);
+    setStatus('offline');
+    showToast('불러오기 실패: ' + error.message);
+    return;
+  }
+
+  setStatus('online');
+  cachedData = data || [];
+  render(document.getElementById('searchInput').value);
 }
 
 /* 분류에 따라 입력 필드 토글 */
@@ -391,7 +467,7 @@ function toggleFields() {
   const category = document.getElementById('category').value;
   const mainFields = document.getElementById('mainFields');
   const subFields = document.getElementById('subFields');
-  
+
   if (category === 'main') {
     mainFields.classList.remove('hidden');
     subFields.classList.add('hidden');
@@ -403,14 +479,12 @@ function toggleFields() {
 
 /* 리스트 렌더링 */
 function render(filterText = ''){
-  const data = getData();
   const list = document.getElementById('list');
   list.innerHTML = '';
 
-  // 현재 탭(코어/프로모션) 및 검색어 필터링
-  const filtered = data.filter(item => {
+  const filtered = cachedData.filter(item => {
     const matchesTab = item.type === currentTab;
-    const matchesSearch = item.name.toLowerCase().includes(filterText.toLowerCase());
+    const matchesSearch = (item.name || '').toLowerCase().includes((filterText || '').toLowerCase());
     return matchesTab && matchesSearch;
   });
 
@@ -419,27 +493,22 @@ function render(filterText = ''){
     return;
   }
 
-  // 원부재료와 부재료로 그룹화
   const mainMaterials = filtered.filter(item => item.category === 'main');
   const subMaterials = filtered.filter(item => item.category === 'sub');
 
-  // 원부재료 섹션 렌더링
   if (mainMaterials.length > 0) {
     const title = document.createElement('div');
     title.className = 'section-title';
     title.innerText = '원부재료';
     list.appendChild(title);
-    
     mainMaterials.forEach(item => list.appendChild(createCard(item)));
   }
 
-  // 부재료 섹션 렌더링
   if (subMaterials.length > 0) {
     const title = document.createElement('div');
     title.className = 'section-title';
     title.innerText = '부재료';
     list.appendChild(title);
-    
     subMaterials.forEach(item => list.appendChild(createCard(item)));
   }
 }
@@ -449,17 +518,17 @@ function createCard(item) {
   const div = document.createElement('div');
   div.className = 'card';
 
-  let contentHtml = `<div class="name">${item.name}</div>`;
-  
+  let contentHtml = `<div class="name">${escapeHtml(item.name)}</div>`;
+
   if (item.category === 'main') {
     contentHtml += `
-      <div class="info-row"><span class="info-label">원팩</span><span>${item.pack || '-'}</span></div>
-      <div class="info-row"><span class="info-label">소분 후</span><span>${item.after || '-'}</span></div>
+      <div class="info-row"><span class="info-label">원팩</span><span>${escapeHtml(item.pack || '-')}</span></div>
+      <div class="info-row"><span class="info-label">소분 후</span><span>${escapeHtml(item.after || '-')}</span></div>
     `;
   } else {
     contentHtml += `
-      <div class="info-row"><span class="info-label">보관방법</span><span>${item.storage || '-'}</span></div>
-      <div class="info-row"><span class="info-label">내품기</span><span>${item.quality_limit || '-'}</span></div>
+      <div class="info-row"><span class="info-label">보관방법</span><span>${escapeHtml(item.storage || '-')}</span></div>
+      <div class="info-row"><span class="info-label">내품기</span><span>${escapeHtml(item.quality_limit || '-')}</span></div>
     `;
   }
 
@@ -472,6 +541,12 @@ function createCard(item) {
 
   div.innerHTML = contentHtml;
   return div;
+}
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = String(str);
+  return div.innerHTML;
 }
 
 /* 탭 전환 */
@@ -488,38 +563,35 @@ function searchItem(text){
   render(text);
 }
 
-/* 모달 열기 */
+/* 모달 열기 (추가) */
 function openModal(){
   editId = null;
   document.getElementById('modalTitle').innerText = '항목 추가';
   document.getElementById('type').value = currentTab;
   document.getElementById('category').value = 'main';
-  
-  // 필드 초기화
+
   document.getElementById('name').value = '';
   document.getElementById('pack').value = '';
   document.getElementById('after').value = '';
   document.getElementById('storage').value = '';
   document.getElementById('quality_limit').value = '';
-  
+
   toggleFields();
   document.getElementById('modal').style.display='flex';
 }
 
-/* 저장 */
-function saveItem(){
-  let data = getData();
+/* 저장 (추가/수정) */
+async function saveItem(){
   const type = document.getElementById('type').value;
   const category = document.getElementById('category').value;
-  const name = document.getElementById('name').value;
+  const name = document.getElementById('name').value.trim();
 
   if(!name){
     alert("이름을 입력해주세요!");
     return;
   }
 
-  const item = {
-    id: editId || Date.now().toString(),
+  const payload = {
     type: type,
     category: category,
     name: name,
@@ -529,21 +601,34 @@ function saveItem(){
     quality_limit: document.getElementById('quality_limit').value
   };
 
-  if(editId){
-    data = data.map(d => d.id === editId ? item : d);
-  }else{
-    data.push(item);
+  const saveBtn = document.getElementById('saveBtn');
+  saveBtn.disabled = true;
+  saveBtn.innerText = '저장 중...';
+
+  let error;
+  if (editId) {
+    ({ error } = await supabaseClient.from(TABLE).update(payload).eq('id', editId));
+  } else {
+    ({ error } = await supabaseClient.from(TABLE).insert(payload));
   }
 
-  setData(data);
+  saveBtn.disabled = false;
+  saveBtn.innerText = '저장';
+
+  if (error) {
+    console.error(error);
+    showToast('저장 실패: ' + error.message);
+    return;
+  }
+
   closeModal();
-  render();
+  showToast('저장되었습니다');
+  await fetchData();
 }
 
-/* 수정 */
+/* 수정 모달 열기 */
 function editItem(id){
-  const data = getData();
-  const item = data.find(d => d.id === id);
+  const item = cachedData.find(d => d.id === id);
   if(!item) return;
 
   editId = id;
@@ -561,11 +646,17 @@ function editItem(id){
 }
 
 /* 삭제 */
-function deleteItem(id){
+async function deleteItem(id){
   if(!confirm("정말 삭제하시겠습니까?")) return;
-  const data = getData().filter(d => d.id !== id);
-  setData(data);
-  render();
+
+  const { error } = await supabaseClient.from(TABLE).delete().eq('id', id);
+  if (error) {
+    console.error(error);
+    showToast('삭제 실패: ' + error.message);
+    return;
+  }
+  showToast('삭제되었습니다');
+  await fetchData();
 }
 
 /* 닫기 */
@@ -581,8 +672,20 @@ window.onclick = function(event) {
   }
 }
 
-// 초기 렌더링
-render();
+/* 실시간 동기화: 다른 사람이 추가/수정/삭제하면 자동 반영 */
+function subscribeRealtime() {
+  if (!isConfigured) return;
+  supabaseClient
+    .channel('items-changes')
+    .on('postgres_changes', { event: '*', schema: 'public', table: TABLE }, () => {
+      fetchData();
+    })
+    .subscribe();
+}
+
+// 초기 로딩
+fetchData();
+subscribeRealtime();
 </script>
 
 </body>
