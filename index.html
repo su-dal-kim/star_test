@@ -378,18 +378,22 @@ textarea {
     <div id="mainFields">
       <div class="input-group">
         <label>원팩 기한</label>
-        <input id="pack" placeholder="예:2일">
+        <input id="pack" placeholder="예: 제조일로부터 1년">
       </div>
       <div class="input-group">
         <label>소분 후 기한</label>
         <input id="after" placeholder="예: 개봉 후 3일">
+      </div>
+      <div class="input-group">
+        <label>보관 방법</label>
+        <input id="main_storage" placeholder="예: 냉장보관(0~10℃)">
       </div>
     </div>
 
     <div id="subFields" class="hidden">
       <div class="input-group">
         <label>보관 방법</label>
-        <input id="storage" placeholder="예: 냉장">
+        <input id="sub_storage" placeholder="예: 냉장보관(0~10℃)">
       </div>
       <div class="input-group">
         <label>내부 품질 기한 (내품기)</label>
@@ -524,6 +528,7 @@ function createCard(item) {
     contentHtml += `
       <div class="info-row"><span class="info-label">원팩</span><span>${escapeHtml(item.pack || '-')}</span></div>
       <div class="info-row"><span class="info-label">소분 후</span><span>${escapeHtml(item.after || '-')}</span></div>
+      <div class="info-row"><span class="info-label">보관방법</span><span>${escapeHtml(item.storage || '-')}</span></div>
     `;
   } else {
     contentHtml += `
@@ -573,7 +578,8 @@ function openModal(){
   document.getElementById('name').value = '';
   document.getElementById('pack').value = '';
   document.getElementById('after').value = '';
-  document.getElementById('storage').value = '';
+  document.getElementById('main_storage').value = '';
+  document.getElementById('sub_storage').value = '';
   document.getElementById('quality_limit').value = '';
 
   toggleFields();
@@ -591,13 +597,17 @@ async function saveItem(){
     return;
   }
 
+  const storageValue = category === 'main'
+    ? document.getElementById('main_storage').value
+    : document.getElementById('sub_storage').value;
+
   const payload = {
     type: type,
     category: category,
     name: name,
     pack: document.getElementById('pack').value,
     after: document.getElementById('after').value,
-    storage: document.getElementById('storage').value,
+    storage: storageValue,
     quality_limit: document.getElementById('quality_limit').value
   };
 
@@ -638,7 +648,8 @@ function editItem(id){
   document.getElementById('name').value = item.name;
   document.getElementById('pack').value = item.pack || '';
   document.getElementById('after').value = item.after || '';
-  document.getElementById('storage').value = item.storage || '';
+  document.getElementById('main_storage').value = item.category === 'main' ? (item.storage || '') : '';
+  document.getElementById('sub_storage').value = item.category === 'sub' ? (item.storage || '') : '';
   document.getElementById('quality_limit').value = item.quality_limit || '';
 
   toggleFields();
