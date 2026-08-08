@@ -63,12 +63,15 @@ header {
 .status-dot.online { background: #4caf50; }
 .status-dot.offline { background: #d32f2f; }
 
-.tabs {
-  display:flex;
-  background:white;
+.top-bar {
   position: sticky;
   top: 0;
   z-index: 100;
+}
+
+.tabs {
+  display:flex;
+  background:white;
 }
 .tab {
   flex:1;
@@ -344,14 +347,16 @@ textarea {
 <body>
 
 <div class="app">
-  <header>
-    내부 품질 기한
-    <span class="status-dot" id="statusDot" title="연결 상태"></span>
-  </header>
+  <div class="top-bar">
+    <header>
+      내부 품질 기한
+      <span class="status-dot" id="statusDot" title="연결 상태"></span>
+    </header>
 
-  <div class="tabs">
-    <div class="tab active" onclick="switchTab('core', this)">코어</div>
-    <div class="tab" onclick="switchTab('promo', this)">프로모션</div>
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab('core', this)">코어</div>
+      <div class="tab" onclick="switchTab('promo', this)">프로모션</div>
+    </div>
   </div>
 
   <div class="search">
