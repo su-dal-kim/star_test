@@ -44,6 +44,7 @@ header {
   background:#006241;
   color:white;
   padding:14px;
+  padding-top: calc(14px + env(safe-area-inset-top));
   text-align:center;
   font-weight:bold;
   position: relative;
@@ -171,7 +172,7 @@ header {
 
 .add-btn {
   position:fixed;
-  bottom:20px;
+  bottom: calc(20px + env(safe-area-inset-bottom));
   right:calc(50% - 200px);
   transform:translateX(50%);
   background:#006241;
