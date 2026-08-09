@@ -91,15 +91,37 @@ header {
   padding:10px;
   background:white;
   border-bottom: 1px solid #eee;
+  position: relative;
 }
 .search input {
   width:100%;
   padding:10px;
+  padding-right: 36px;
   border-radius:8px;
   border:1px solid #ddd;
   font-size: 16px;
   -webkit-appearance: none;
   appearance: none;
+}
+.search-clear {
+  display: none;
+  position: absolute;
+  right: 20px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 22px;
+  height: 22px;
+  border: none;
+  border-radius: 50%;
+  background: #ccc;
+  color: white;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+}
+.search-clear.show {
+  display: block;
 }
 
 .container {
@@ -360,6 +382,7 @@ textarea {
 
     <div class="search">
       <input type="text" id="searchInput" placeholder="품목 검색" onkeyup="searchItem(this.value)">
+      <button type="button" class="search-clear" id="searchClear" onclick="clearSearch()">&times;</button>
     </div>
   </div>
 
@@ -580,13 +603,34 @@ function switchTab(tab, el){
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   el.classList.add('active');
   document.getElementById('searchInput').value = '';
+  toggleClearBtn('');
   window.scrollTo({ top: 0, behavior: 'auto' });
   render();
 }
 
 /* 검색 */
 function searchItem(text){
+  toggleClearBtn(text);
   render(text);
+}
+
+/* 검색창 X 버튼 표시 여부 */
+function toggleClearBtn(text){
+  const clearBtn = document.getElementById('searchClear');
+  if (text && text.length > 0) {
+    clearBtn.classList.add('show');
+  } else {
+    clearBtn.classList.remove('show');
+  }
+}
+
+/* 검색어 한 번에 지우기 */
+function clearSearch(){
+  const input = document.getElementById('searchInput');
+  input.value = '';
+  toggleClearBtn('');
+  render('');
+  input.focus();
 }
 
 /* 모달 열기 (추가) */
