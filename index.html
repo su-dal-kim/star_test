@@ -152,6 +152,17 @@ header {
   padding:12px;
   margin-bottom:8px;
   box-shadow:0 1px 4px rgba(0,0,0,0.08);
+  cursor: pointer;
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.card-header .name {
+  margin-bottom: 0;
 }
 
 .name {
@@ -173,6 +184,35 @@ header {
   flex-shrink: 0;
 }
 
+.expand-arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #e8f3ee;
+  color: #006241;
+  font-size: 15px;
+  font-weight: bold;
+  margin-left: 8px;
+  flex-shrink: 0;
+  transition: transform 0.2s;
+}
+.expand-arrow.open {
+  transform: rotate(180deg);
+}
+
+.card-expand {
+  overflow: hidden;
+  max-height: 0;
+  padding-top: 8px;
+  transition: max-height 0.25s ease;
+}
+.card-expand.open {
+  max-height: 600px;
+}
+
 .btns {
   display:flex;
   gap:6px;
@@ -181,32 +221,23 @@ header {
   padding-top: 10px;
 }
 
-.card.clickable {
-  cursor: pointer;
-}
-
-.recipe-hint {
-  margin-top: 8px;
+.recipe-label {
+  margin-top: 10px;
   font-size: 12px;
-  color: #006241;
+  color: #999;
   font-weight: bold;
-  display: flex;
-  align-items: center;
-  gap: 4px;
 }
 
 .recipe-detail {
-  margin-top: 8px;
+  margin-top: 6px;
   padding: 10px;
   background: #f4f6f8;
   border-radius: 8px;
+  border-left: 3px solid #006241;
   font-size: 13px;
   color: #555;
   line-height: 1.5;
   white-space: pre-wrap;
-}
-.recipe-detail.hidden {
-  display: none;
 }
 
 .btn {
@@ -396,6 +427,22 @@ textarea {
   white-space: nowrap;
 }
 .toast.show { opacity: 1; }
+
+.demo-banner {
+  display: none;
+  background: #fff3cd;
+  color: #7a5c00;
+  border-bottom: 1px solid #ffe08a;
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: bold;
+  text-align: center;
+  line-height: 1.4;
+}
+.demo-banner.show {
+  display: block;
+}
+
 </style>
 </head>
 
@@ -403,6 +450,7 @@ textarea {
 
 <div class="app">
   <div class="top-bar">
+    <div id="demoBanner" class="demo-banner">⚠️ 서버 연결 실패로 미리보기(샘플) 데이터가 표시되고 있습니다. 지금 입력하는 내용은 저장되지 않습니다.</div>
     <header>
       내부 품질 기한
       <span class="status-dot" id="statusDot" title="연결 상태"></span>
@@ -500,13 +548,41 @@ textarea {
 const SUPABASE_URL = 'https://qjaygidswkasosyhjluj.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFqYXlnaWRzd2thc29zeWhqbHVqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYxMjQ2MjQsImV4cCI6MjEwMTcwMDYyNH0.Nn3x7GPExxxSxHTGlcIIPpdb3DO75ZUeqGDeL0eC6_g';
 
-const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+let supabaseClient = null;
+try { if (window.supabase?.createClient) supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY); } catch(e) { console.warn('Supabase 초기화 실패', e); }
 const TABLE = 'items';
 
 let currentTab = 'core';
 let editId = null;
 let cachedData = [];
-let isConfigured = SUPABASE_URL.indexOf('YOUR_PROJECT_REF') === -1;
+let isConfigured = !!supabaseClient && SUPABASE_URL.indexOf('YOUR_PROJECT_REF') === -1;
+let demoMode = false;
+const DEMO_DATA = [
+{id:'demo-1',type:'core',category:'main',name:'휘핑크림',pack:'미개봉 냉장 보관',after:'개봉 후 24시간',storage:'냉장 보관',quality_limit:'',recipe:''},
+{id:'demo-2',type:'core',category:'main',name:'우유',pack:'원팩 기한 준수',after:'개봉 후 24시간',storage:'냉장 보관',quality_limit:'',recipe:''},
+{id:'demo-3',type:'core',category:'main',name:'초코소스',pack:'원팩 기한 준수',after:'개봉 후 30일',storage:'실온 보관',quality_limit:'',recipe:''},
+{id:'demo-4',type:'core',category:'sub',name:'바닐라 크림',pack:'',after:'',storage:'냉장 보관',quality_limit:'제조 후 24시간',recipe:'① 재료를 준비합니다.\n② 정해진 순서대로 혼합합니다.\n③ 완성 후 냉장 보관합니다.'},
+{id:'demo-5',type:'core',category:'sub',name:'콜드폼',pack:'',after:'',storage:'냉장 보관',quality_limit:'제조 후 24시간',recipe:'① 필요한 재료를 계량합니다.\n② 충분히 혼합합니다.\n③ 제조 완료 후 냉장 보관합니다.'},
+{id:'demo-6',type:'promo',category:'main',name:'피치망고용과토핑',pack:'원팩 3개월',after:'개봉 후 당일 폐기',storage:'실온 보관',quality_limit:'',recipe:''},
+{id:'demo-7',type:'promo',category:'sub',name:'피치망고 토핑',pack:'',after:'',storage:'냉장 보관',quality_limit:'제조 후 당일',recipe:'① 토핑 재료를 준비합니다.\n② 정해진 방법으로 제조합니다.\n③ 제조 후 냉장 보관합니다.'}
+];
+function enableDemoMode(message='', isFailure=false) {
+  demoMode = true;
+  isConfigured = false;
+  cachedData = DEMO_DATA.map(x=>({...x}));
+  setStatus('offline');
+  render(document.getElementById('searchInput')?.value||'');
+
+  const banner = document.getElementById('demoBanner');
+  if (banner) banner.classList.add('show');
+
+  if (isFailure) {
+    // 실제 연결 문제일 때만 확인이 필요한 팝업으로 명확히 경고
+    alert('⚠️ 서버 연결에 실패했습니다.\n지금 화면에는 미리보기용 샘플 데이터가 표시됩니다.\n\n이 상태에서 추가/수정한 내용은 실제로 저장되지 않으며, 새로고침하면 사라집니다.\n\n네트워크 상태나 Supabase 프로젝트 상태를 확인해주세요.');
+  } else if (message) {
+    showToast(message);
+  }
+}
 
 function setStatus(state) {
   const dot = document.getElementById('statusDot');
@@ -522,28 +598,27 @@ function showToast(msg) {
 
 /* 데이터 전체 불러오기 */
 async function fetchData() {
-  if (!isConfigured) {
-    setStatus('offline');
-    document.getElementById('list').innerHTML =
-      '<div class="empty-msg">Supabase 설정이 필요합니다.<br>코드 상단 SUPABASE_URL / SUPABASE_ANON_KEY를 입력하세요.</div>';
+  if (!isConfigured || !supabaseClient) {
+    // API 키 미설정 또는 라이브러리 로드 실패(예: 미리보기 샌드박스) — 조용히 안내만
+    enableDemoMode('미리보기 모드로 실행 중입니다', false);
     return;
   }
-
-  const { data, error } = await supabaseClient
-    .from(TABLE)
-    .select('*')
-    .order('created_at', { ascending: true });
-
-  if (error) {
-    console.error(error);
-    setStatus('offline');
-    showToast('불러오기 실패: ' + error.message);
-    return;
+  try {
+    const {data,error}=await supabaseClient.from(TABLE).select('*').order('created_at',{ascending:true});
+    if(error) throw error;
+    setStatus('online'); cachedData=data||[];
+    if(!cachedData.length){
+      enableDemoMode('등록된 데이터가 없어 미리보기 데이터를 표시합니다', false);
+      return;
+    }
+    const banner = document.getElementById('demoBanner');
+    if (banner) banner.classList.remove('show');
+    render(document.getElementById('searchInput').value||'');
+  } catch(e) {
+    // 정상 설정된 상태에서 실제로 연결이 끊긴 경우 — 반드시 팝업으로 경고
+    console.warn('Supabase 연결 실패 → 미리보기 모드', e);
+    enableDemoMode('', true);
   }
-
-  setStatus('online');
-  cachedData = data || [];
-  render(document.getElementById('searchInput').value);
 }
 
 /* 분류에 따라 입력 필드 토글 */
@@ -602,54 +677,52 @@ function createCard(item) {
   const div = document.createElement('div');
   div.className = 'card';
 
-  let contentHtml = `<div class="name">${escapeHtml(item.name)}</div>`;
-
+  let infoHtml = '';
   if (item.category === 'main') {
-    contentHtml += `
+    infoHtml = `
       <div class="info-row"><span class="info-label">원팩</span><span>${escapeHtml(item.pack || '-')}</span></div>
       <div class="info-row"><span class="info-label">소분 후</span><span>${escapeHtml(item.after || '-')}</span></div>
       <div class="info-row"><span class="info-label">보관방법</span><span>${escapeHtml(item.storage || '-')}</span></div>
     `;
   } else {
-    contentHtml += `
+    infoHtml = `
       <div class="info-row"><span class="info-label">보관방법</span><span>${escapeHtml(item.storage || '-')}</span></div>
       <div class="info-row"><span class="info-label">내품기</span><span>${escapeHtml(item.quality_limit || '-')}</span></div>
     `;
   }
 
-  contentHtml += `
-    <div class="btns">
-      <button class="btn edit" onclick="event.stopPropagation(); editItem('${item.id}')">수정</button>
-      <button class="btn delete" onclick="event.stopPropagation(); deleteItem('${item.id}')">삭제</button>
+  const hasRecipe = item.category === 'sub' && item.recipe && item.recipe.trim().length > 0;
+  const recipeHtml = hasRecipe
+    ? `<div class="recipe-label">제조 방법</div><div class="recipe-detail">${escapeHtml(item.recipe)}</div>`
+    : '';
+
+  div.innerHTML = `
+    <div class="card-header">
+      <div class="name">${escapeHtml(item.name)}</div>
+      <span class="expand-arrow">▾</span>
+    </div>
+    <div class="card-expand">
+      ${infoHtml}
+      <div class="btns">
+        <button class="btn edit" onclick="event.stopPropagation(); editItem('${item.id}')">수정</button>
+        <button class="btn delete" onclick="event.stopPropagation(); deleteItem('${item.id}')">삭제</button>
+      </div>
+      ${recipeHtml}
     </div>
   `;
 
-  const hasRecipe = item.category === 'sub' && item.recipe && item.recipe.trim().length > 0;
-  if (hasRecipe) {
-    contentHtml += `
-      <div class="recipe-hint"><span class="recipe-arrow">▾</span> 제조 방법 보기</div>
-      <div class="recipe-detail hidden">${escapeHtml(item.recipe)}</div>
-    `;
-  }
-
-  div.innerHTML = contentHtml;
-
-  if (hasRecipe) {
-    div.classList.add('clickable');
-    div.addEventListener('click', () => toggleRecipe(div));
-  }
+  div.addEventListener('click', () => toggleCard(div));
 
   return div;
 }
 
-/* 제조 방법 펼치기/접기 */
-function toggleRecipe(cardEl){
-  const detail = cardEl.querySelector('.recipe-detail');
-  const arrow = cardEl.querySelector('.recipe-arrow');
-  if (!detail) return;
-  const willShow = detail.classList.contains('hidden');
-  detail.classList.toggle('hidden');
-  if (arrow) arrow.textContent = willShow ? '▴' : '▾';
+/* 카드 펼치기/접기 (수정/삭제 버튼, 제조방법 표시) */
+function toggleCard(cardEl){
+  const expand = cardEl.querySelector('.card-expand');
+  const arrow = cardEl.querySelector('.expand-arrow');
+  if (!expand) return;
+  expand.classList.toggle('open');
+  if (arrow) arrow.classList.toggle('open');
 }
 
 function escapeHtml(str) {
@@ -715,53 +788,20 @@ function openModal(){
 
 /* 저장 (추가/수정) */
 async function saveItem(){
-  const type = document.getElementById('type').value;
-  const category = document.getElementById('category').value;
-  const name = document.getElementById('name').value.trim();
-
-  if(!name){
-    alert("이름을 입력해주세요!");
-    return;
+  const type=document.getElementById('type').value, category=document.getElementById('category').value, name=document.getElementById('name').value.trim();
+  if(!name){alert('이름을 입력해주세요!');return;}
+  const storageValue=category==='main'?document.getElementById('main_storage').value:document.getElementById('sub_storage').value;
+  const payload={type,category,name,pack:document.getElementById('pack').value,after:document.getElementById('after').value,storage:storageValue,quality_limit:document.getElementById('quality_limit').value,recipe:category==='sub'?document.getElementById('recipe').value:''};
+  if(demoMode || !supabaseClient){
+    if(editId){const i=cachedData.findIndex(x=>x.id===editId); if(i>=0) cachedData[i]={...cachedData[i],...payload};}
+    else cachedData.push({id:'demo-'+Date.now(),...payload});
+    closeModal(); render(document.getElementById('searchInput').value||''); showToast('미리보기 데이터에 저장되었습니다'); return;
   }
-
-  const storageValue = category === 'main'
-    ? document.getElementById('main_storage').value
-    : document.getElementById('sub_storage').value;
-
-  const payload = {
-    type: type,
-    category: category,
-    name: name,
-    pack: document.getElementById('pack').value,
-    after: document.getElementById('after').value,
-    storage: storageValue,
-    quality_limit: document.getElementById('quality_limit').value,
-    recipe: category === 'sub' ? document.getElementById('recipe').value : ''
-  };
-
-  const saveBtn = document.getElementById('saveBtn');
-  saveBtn.disabled = true;
-  saveBtn.innerText = '저장 중...';
-
-  let error;
-  if (editId) {
-    ({ error } = await supabaseClient.from(TABLE).update(payload).eq('id', editId));
-  } else {
-    ({ error } = await supabaseClient.from(TABLE).insert(payload));
-  }
-
-  saveBtn.disabled = false;
-  saveBtn.innerText = '저장';
-
-  if (error) {
-    console.error(error);
-    showToast('저장 실패: ' + error.message);
-    return;
-  }
-
-  closeModal();
-  showToast('저장되었습니다');
-  await fetchData();
+  const saveBtn=document.getElementById('saveBtn'); saveBtn.disabled=true; saveBtn.innerText='저장 중...';
+  let result=editId?await supabaseClient.from(TABLE).update(payload).eq('id',editId):await supabaseClient.from(TABLE).insert(payload);
+  saveBtn.disabled=false; saveBtn.innerText='저장';
+  if(result.error){console.error(result.error);showToast('저장 실패: '+result.error.message);return;}
+  closeModal(); showToast('저장되었습니다'); await fetchData();
 }
 
 /* 수정 모달 열기 */
@@ -787,16 +827,11 @@ function editItem(id){
 
 /* 삭제 */
 async function deleteItem(id){
-  if(!confirm("정말 삭제하시겠습니까?")) return;
-
-  const { error } = await supabaseClient.from(TABLE).delete().eq('id', id);
-  if (error) {
-    console.error(error);
-    showToast('삭제 실패: ' + error.message);
-    return;
-  }
-  showToast('삭제되었습니다');
-  await fetchData();
+  if(!confirm('정말 삭제하시겠습니까?')) return;
+  if(demoMode || !supabaseClient){ cachedData=cachedData.filter(x=>x.id!==id); render(document.getElementById('searchInput').value||''); showToast('미리보기 데이터에서 삭제되었습니다'); return; }
+  const {error}=await supabaseClient.from(TABLE).delete().eq('id',id);
+  if(error){console.error(error);showToast('삭제 실패: '+error.message);return;}
+  showToast('삭제되었습니다'); await fetchData();
 }
 
 /* 닫기 */
@@ -814,7 +849,7 @@ window.onclick = function(event) {
 
 /* 실시간 동기화: 다른 사람이 추가/수정/삭제하면 자동 반영 */
 function subscribeRealtime() {
-  if (!isConfigured) return;
+  if (!isConfigured || !supabaseClient || demoMode) return;
   supabaseClient
     .channel('items-changes')
     .on('postgres_changes', { event: '*', schema: 'public', table: TABLE }, () => {
@@ -823,7 +858,9 @@ function subscribeRealtime() {
     .subscribe();
 }
 
-// 초기 로딩
+// 초기 로딩: Claude 미리보기에서도 즉시 샘플 화면 표시
+cachedData = DEMO_DATA.map(x=>({...x}));
+render('');
 fetchData();
 subscribeRealtime();
 </script>
